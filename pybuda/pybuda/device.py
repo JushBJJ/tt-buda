@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from typing import List, Tuple, Union, Optional, Dict, Any, Iterator
 import queue
 import threading
+import transformers
 
 import torch
 from multiprocessing.synchronize import Event as EventClass
@@ -728,8 +729,13 @@ class Device:
         microbatch_size = get_microbatch_size(first_inputs[0])
 
         for input in first_inputs:
+            ### CHANGE ###
+            if isinstance(input, transformers.cache_utils.DynamicCache):
+                continue
             mb_size = get_microbatch_size(input)
-            if (mb_size != microbatch_size) and (mb_size != 1):
+            if mb_size == 0:
+                continue # skip
+            elif (mb_size != microbatch_size) and (mb_size != 1):
                 raise RuntimeError("Microbatch size doesn't match for all inputs")
 
         out_first_inputs = remove_microbatch(first_inputs)

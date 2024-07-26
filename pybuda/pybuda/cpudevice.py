@@ -213,10 +213,13 @@ class CPUDevice(Device):
                         t.retain_grad()
                         
                 if self.input_dtypes:
+                    ### CHANGE ###
+                    if len(self.input_dtypes) != len(torch_inputs):
+                        torch_inputs = torch_inputs + (torch.Tensor([]),)
                     assert len(self.input_dtypes) == len(torch_inputs), f"CPUDevice input_dtypes specified, but differs in size from number of actual inputs. Types specified: {len(self.input_dtypes)}, num inputs: {len(torch_inputs)}"
                     torch_inputs = tuple(t.type(typ) for t, typ in zip(torch_inputs, self.input_dtypes))
                     torch_inputs = detach_tensors(torch_inputs)
-                
+
                 elif any(t.dtype in (torch.float16, torch.bfloat16) for t in torch_inputs):
                     torch_inputs = tuple(t.type(torch.float32) for t in torch_inputs)
                     torch_inputs = detach_tensors(torch_inputs)

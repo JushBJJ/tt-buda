@@ -15,6 +15,7 @@ import copy
 import jaxlib
 import jax.numpy as jnp
 import json
+import transformers
 
 from .pybudaglobal import TILE_DIM, align_up_tile, round_up_div
 from pybuda._C import DataFormat
@@ -1161,7 +1162,11 @@ def remove_microbatch(tensors: Tuple[Union[torch.Tensor, Tensor], ...]) -> Tuple
     out = []
     for input in tensors:
         if isinstance(input, torch.Tensor):
-            out.append(Tensor.create_from_torch(torch.narrow(input.clone(), 0, 0, 1)))
+            ### CHANGE ###
+            if input.numel() == 0:
+                out.append(Tensor.create_from_torch(input.clone()))
+            else:
+                out.append(Tensor.create_from_torch(torch.narrow(input.clone(), 0, 0, 1)))
         elif isinstance(input, (tf.Variable, tf.Tensor)):
             torch_tensor = torch.Tensor(input.numpy()).type(map_tf_dtype_to_pt(input.dtype))
             out.append(Tensor.create_from_torch(torch.narrow(torch_tensor, 0, 0, 1)))
@@ -1171,6 +1176,9 @@ def remove_microbatch(tensors: Tuple[Union[torch.Tensor, Tensor], ...]) -> Tuple
             tensor_list = list(input.values())
             out_dict = {k:v for (k, _), v, in zip(input.items(), remove_microbatch(tensor_list))}
             out.append(out_dict)
+        elif isinstance(input, transformers.cache_utils.DynamicCache):
+            ### CHANGE ###
+            out.append(input)
         else:
             out.append(Tensor.create_from_torch(torch.narrow(input.value().clone(), 0, 0, 1), dev_data_format=input.data_format))
 
